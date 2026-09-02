@@ -2,13 +2,23 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
 
+// 1. Force dynamic execution so Next.js does not analyze this during build time ⚡
+export const dynamic = 'force-dynamic'
+
 export async function POST(req: Request) {
   try {
-    // Initialize inside the handler so build-time static generation doesn't fail
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    // 2. Safely guard against missing keys at runtime 🛡️
+    if (!supabaseUrl || !serviceRoleKey) {
+      return NextResponse.json(
+        { error: 'Missing Supabase environment variables' },
+        { status: 500 }
+      )
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
 
     const text = await req.text()
     const secret = process.env.LEMON_SQUEEZY_WEBHOOK_SECRET || ''
